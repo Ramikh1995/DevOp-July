@@ -1,0 +1,242 @@
+Install Terraform latest version:
+
+wget https://releases.hashicorp.com/terraform/1.8.5/terraform_1.8.5_linux_amd64.zip
+unzip terraform_1.8.5_linux_amd64.zip
+mv terraform /usr/local/bin
+execute these commands on the lab terminal
+close the terminal
+and open again
+terraform --version
+
+
+User creation in AWS and create accesskey and secret key for it.
+
+We will use this accesskey and secret key in the terraform configuration file.
+
+
+You will be connected to AWS management:
+
+In the search box, give IAM and select it.
+You will be on IAM dashboard
+
+On the left side→ click on Users→ Click on ADD user button →under user details give User name as Terraform → click on next →select 3rd option Attach policies directly →scroll down and from list click on AdministratorAccess →Scroll down → click next → scroll down and click on Create User.
+
+Click on the user name Terraform →Click on security credentials tab→ scroll down to access key→ click on create access key→Click on Command Line Interface (CLI) → Scroll down→Select the box of→ I understand the above recommendation and want to proceed to create an access key. → click on next → click on create access key
+
+
+Configure AWS CLI on the lab machine, and save the access key and secret key on the lab
+
+
+# aws configure
+
+Give the valid access key
+
+Give the valid secret key
+
+Press enter, no need to give any region and format option
+To verify if the credentials have been set for aws
+
+# cat ~/.aws/credentials
+
+
+=========================================
+# mkdir terraformfiles
+
+# cd terraformfiles
+
+# vim aws-infra.tf
+
+provider "aws" {
+
+region = "us-east-1"
+shared_credentials_files = ["~/.aws/credentials"]
+
+}
+
+
+Save the file.
+
+# terraform init
+
+The above command will download aws terraform plugin that will be used to connect to AWS and create Infrastructure.
+
+
+=====================================
+
+Create s3 bucket resource
+=====================================
+
+vim aws-infra.tf
+
+provider "aws" {
+
+region = "us-east-1"
+shared_credentials_files = ["~/.aws/credentials"]
+
+}
+
+resource "aws_s3_bucket" "mys3" {
+  bucket = "mybucket3456356"
+
+  tags = {
+    Name        = "My bucket 1"
+   
+  }
+}
+
+
+# terraform apply --auto-approve
+
+==============================================
+Data Block:
+==============================================
+
+Just add this block to exisitng code
+
+# vim aws-infra.tf
+
+data "aws_ami" "myami"{
+
+most_recent = true
+
+owners = ["amazon"]
+
+filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm*"]
+  }
+
+}  
+
+Save the file
+
+# terraform apply --auto-approve
+
+Data Block:
+# this is like a query block, that will fetch ami id based on your filter input
+Data Block is like a filter which is used to filter values on AWS and fetch it on the terraform machine so that terraform can use them in creating the resource
+
+The data block will not create anything on AWS. it just fetches data for terraform
+
+The data block will fetch the ami id -> based on the filters that I give
+We will then use that ami id 
+
+
+===================================
+
+Use the data block output which is an AMI id into your terraform resource block
+   # the data is stored in the terraform state file. we fetch the id form there
+
+# vim aws-infra.tf
+
+resource "aws_instance" "myec2" {
+  ami           = data.aws_ami.myami.id        
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "instance-1"
+  }
+   
+
+}
+
+
+Save the code
+
+# terraform apply --auto-approve
+
+===============================================
+
+Variables in terraform
+===============================================
+
+# vim variables.tf
+
+variable "instance_type" {
+
+default = "t2.nano"
+
+}
+
+variable "region" {
+
+default = "us-east-1"
+
+}
+
+variable "env" {
+ default = "Dev"
+
+}
+
+
+Save the file
+
+Use or call the variables in the aws-infra.tf file
+
+==================================================
+
+# vim aws-infra.tf
+
+provider "aws" {
+
+region = var.region
+
+shared_credentials_files = ["~/.aws/credentials"]
+
+}
+
+resource "aws_s3_bucket" "mys3" {
+  bucket = "mybucket3456356"
+
+  tags = {
+    Name        = "My bucket 1"
+
+  }
+}
+
+data "aws_ami" "myami"{
+
+most_recent = true
+
+owners = ["amazon"]
+
+filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm*"]
+  }
+
+}   # this is like a query block, that will fetch ami id based on your filter input
+
+
+resource "aws_instance" "myec2" {
+  ami           = data.aws_ami.myami.id  # the data is stored in the terraform state file. we fetch the id form there
+
+ instance_type = var.instance_type
+
+  tags = {
+    Name = var.env
+  }
+
+
+}
+
+
+
+# terraform plan
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,164 @@
+# sudo su -
+
+# cd /etc/ansible
+
+Create a playbook to fetch variables from a file
+
+# vim variables.yml
+
+file_path: /tmp/ansible_file
+file_state: touch
+pkg_name: tree
+pkg_state: present
+
+
+Save the file (:wq!)
+
+# vim playbookvariables2.yml
+
+- name: Fetch  Variables from a file
+  hosts: webserver
+  become: true
+  vars_files:
+   - variables.yml
+  tasks:
+  - name: Create a file on the hostserver
+    file: path={{file_path}} state={{file_state}}
+  - name: Install a package
+    package: name={{pkg_name}} state={{pkg_state}}
+
+
+# ansible-playbook playbookvariables2.yml -vv
+
+Pass the value for a exisitng variable at runtime
+
+# ansible-playbook playbookvariables2.yml --extra-vars file_path=/tmp/file2_ansible
+
+===============================
+
+Prompt for variable value at runtime -> usefule when we to enter password value at runtime
+
+# vim playbookvaraibles3.yml
+
+- name: Prompt the value to variable at runtime
+  hosts: webserver
+  become: true
+  vars_prompt:
+   - name: username
+     prompt: Enter you user to be created
+     private: false
+   - name: password
+     prompt: Enter the user password
+     private: true
+  tasks:
+  - name: Create a user and password for the user on host server
+    user: name={{username}} password={{password}}
+
+
+save the file
+
+# ansible-playbook playbookvaraibles3.yml
+
+
+=========================================
+Loops in ansible:
+=======================================
+
+# vim playbookLoops.yml
+
+- name: Run a module again and again
+  hosts: webserver
+  become: true
+  vars:
+   user_list: # a variable which is storing a list or array of values
+    - user01
+    - user02
+    - user03
+  tasks:
+  - name: Create multiple Users
+    user: name={{item}} state=present
+    loop: "{{user_list}}"
+  - name: Create multiple files
+    file: path={{item}} state=touch
+    loop:
+     - /tmp/ans1
+     - /tmp/ans2
+     - /tmp/ans3
+
+
+save the file
+
+# ansible-playbook playbookLoops.yml
+
+Fact variables in Ansible using setup module
+
+# ansible webserver -m setup -a "filter=ansible_memfree_mb"
+# ansible webserver -m setup -a "filter=ansible_host*"
+# ansible webserver -m setup -a "filter=ansible_os_family"
+
+=======================================================
+
+# vim playbookWhen.yml
+
+- name: FactVariables in the playbook
+  hosts: webserver
+  become: true
+  tasks:
+  - name: Install httpd Package
+    package: name=httpd state=present
+    when: ansible_os_family == "RedHat"
+  - name: Install apache2 package
+    package: name=apache2 state=present
+    when: ansible_os_family != "RedHat"
+
+
+# ansible-playbook playbookWhen.yml 
+
+========================================
+
+Jinja2 templates and Ansible Template module
+================================================
+
+# vim webfile.j2
+
+This is php configuration file
+
+Location of this file is /etc/ansible
+
+Ipaddress of the Host : {{ansible_default_ipv4["address"]}}
+
+Host Node Name is : {{ansible_nodename}}
+
+Host OS faily is : {{ansible_os_family}}
+
+
+Save the file
+
+
+# vim playbookJinja.yml
+
+- name: Copy the jinja2 template
+  hosts: webserver
+  become: true
+  tasks:
+  - name: Copy jinja2 template on the webserver
+    template: src=webfile.j2 dest=/tmp/webfile.txt
+
+Save the file
+
+# ansible-playbook playbookJinja.yml
+
+# cat /tmp/webfile.txt
+
+
+
+
+
+
+
+
+
+
+
+
+
